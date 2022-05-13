@@ -44,3 +44,15 @@ All generated files are stored in the files folder as follows:
 ├── warc_processor.py
 └── zimlii.warc
 ```
+
+### Docker
+
+Generating and uploading content packs in Docker:
+```
+$ docker build \ 
+    --build-arg AWS_REGION="<AWS_REGION>"
+    --build-arg AWS_KEY="<YOUR_AWS_CLI_KEY>" \
+    --build-arg AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
+    -t pl-extraction . \
+    && docker run -d pl-extraction
+```
