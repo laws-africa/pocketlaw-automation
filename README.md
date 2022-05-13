@@ -50,7 +50,9 @@ All generated files are stored in the files folder as follows:
 Generating and uploading content packs in Docker:
 ```
 $ docker build \ 
-    --build-arg AWS_REGION="<AWS_REGION>"
+    --build-arg PRODUCT_DOMAIN="zimlii.org" \
+    --build-arg PRODUCT="zimlii" \
+    --build-arg AWS_REGION="eu-west-1"
     --build-arg AWS_KEY="<YOUR_AWS_CLI_KEY>" \
     --build-arg AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
     -t pl-extraction . \
