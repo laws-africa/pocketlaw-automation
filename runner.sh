@@ -2,10 +2,11 @@
 
 ARCHIVE_FILE="./${PRODUCT}.warc.gz"
 PRODUCT_URL="https://${PRODUCT_DOMAIN}"
+MEDIA_BASE_URL="media.${PRODUCT_DOMAIN}"
 
 # Run wget
 wget --page-requisites \
-    --domains ${PRODUCT_DOMAIN},media.zimlii.org,use.fontawesome.com,fonts.googleapis.com,code.highcharts.com \
+    --domains ${PRODUCT_DOMAIN},${MEDIA_BASE_URL},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
     --span-hosts \
     --https-only --reject pdf,rtf,doc,docx,DOC \
     --delete-after \
