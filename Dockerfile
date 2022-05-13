@@ -20,8 +20,6 @@ COPY runner.sh /extraction/runner.sh
 
 WORKDIR /extraction
 
-RUN chmod +x runner.sh
-
 # install requirements
 RUN pip install -r requirements.txt
 
@@ -30,4 +28,5 @@ RUN aws configure set aws_access_key_id ${AWS_KEY}
 RUN aws configure set aws_secret_access_key ${AWS_SECRET}
 RUN aws configure set region ${AWS_REGION}
 
+RUN chmod +x runner.sh
 ENTRYPOINT [ "./runner.sh" ]
