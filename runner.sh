@@ -38,13 +38,9 @@ aws configure set aws_secret_access_key ${AWS_SECRET}
 aws configure set region ${AWS_REGION}
 
 # Run wget
-wget --recursive --page-requisites \
+wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories \
     --domains ${PRODUCT_DOMAIN},${MEDIA_BASE_URL},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
-    --span-hosts \
-    --https-only --reject pdf,rtf,doc,docx,DOC \
-    --delete-after \
     --warc-file=$PRODUCT \
-    --no-directories \
     ${PRODUCT_URL}
 
 # Run warc_processor.py with location to warc file

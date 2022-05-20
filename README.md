@@ -54,7 +54,7 @@ Generating and uploading content packs in Docker:
 $ docker build -t pl-content-extraction .
 ```
 
-2. Run the container:
+2. Run the container with the required environment variables for the current product:
 ```
 $ docker run \
     -e PRODUCT="zimlii" \
