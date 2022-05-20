@@ -14,7 +14,11 @@ from warcio.archiveiterator import ArchiveIterator
 
 
 here = path.abspath(path.dirname(__file__))
-log = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)-8s %(message)s",
+                    datefmt="%d-%m-%Y %H:%M")
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description="Process a warc archive file into content packs.")
 parser.add_argument("--product", required=True, help="the LII website e.g. zimlii, namiblii")
@@ -137,13 +141,13 @@ class WarcProcessor:
 
         If any of these folders exists, delete them and recreate them.
         """
-        # create files folder
+        logger.info("Creating product files folder ...")
         if path.exists(self.files_path):
             shutil.rmtree(self.files_path)
 
         makedirs(self.files_path)
 
-        # create the pack sub_folders
+        logger.info("Creating pack folders ...")
         for pack_id in CONTENT_PACKS.keys():
             pack_folder = path.join(self.files_path, f'{pack_id}')
             if path.exists(pack_folder):
@@ -151,7 +155,7 @@ class WarcProcessor:
 
             makedirs(pack_folder)
 
-        # create outputs folder
+        logger.info("Creating outputs folder ...")
         if path.exists(self.outputs_path):
             shutil.rmtree(self.outputs_path)
 
@@ -166,6 +170,7 @@ class WarcProcessor:
         gazettes_writer = WARCWriter(filebuf=open(path.join(self.files_path, "gazettes/data.warc.gz"), "wb"), gzip=True)
         legislation_writer = WARCWriter(filebuf=open(path.join(self.files_path, "legislation/data.warc.gz"), "wb"), gzip=True)
 
+        logger.info("Generating data.warc.gz files for the content packs ...")
         with open(path.join(here, self.full_warc), "rb") as full_archive:
             for record in ArchiveIterator(full_archive, no_record_parse=False):
                 record_uri = record.rec_headers.get_header("WARC-Target-URI")
@@ -179,10 +184,14 @@ class WarcProcessor:
                 else:
                     base_writer.write_record(record)
 
+            logger.info("\tdata.warc.gz files generated successfully")
+
     def generate_indexes(self):
         """ Generate index.jsonlines for each pack
         """
         fields = ['warc-type', 'warc-target-uri', 'offset', 'length']
+
+        logger.info("Generating index.jsonlines for the content packs ...")
         for pack_id in CONTENT_PACKS.keys():
             data_path = path.join(self.files_path, f'{pack_id}/data.warc.gz')
             index_path = path.join(self.files_path, f'{pack_id}/index.jsonlines')
@@ -190,11 +199,12 @@ class WarcProcessor:
             indexer = CustomIndexer(fields=fields, inputs=[data_path], output=index_path)
             indexer.process_all()
 
-            log.info(f"{pack_id} indexed successfully")
+            logger.info(f"\t{pack_id} pack indexed successfully")
 
     def generate_manifest(self):
         """ Generate manifest.json for each content pack
         """
+        logger.info("Generating manifest.json for the content packs ...")
         for pack_id, pack in CONTENT_PACKS.items():
             data_path = path.join(self.files_path, f'{pack_id}/data.warc.gz')
             manifest_path = path.join(self.files_path, f'{pack_id}/manifest.json')
@@ -211,9 +221,12 @@ class WarcProcessor:
             with open(manifest_path, 'w') as manifest:
                 json.dump(pack, manifest, indent=4)
 
+                logger.info(f"\t{pack_id} pack manifest generated successfully")
+
     def generate_packs(self):
         """ Generate content_pack.tgz that contains data.warc.gz + index.jsonlines + manifest.json
         """
+        logger.info("Packing the content pack files ...")
         for pack_id, pack in CONTENT_PACKS.items():
             content_pack_path = path.join(self.outputs_path, f"{pack['filename']}")
             files_path = path.join(self.files_path, f'{pack_id}')
@@ -221,12 +234,15 @@ class WarcProcessor:
             with tarfile.open(content_pack_path, "w:gz") as tar:
                 tar.add(files_path, arcname=path.sep)
 
+                logger.info(f"\t{pack_id} pack packed successfully")
+
     def generate_packs_json(self):
         """ Update pocketlaw-releases/self.product/packs.json to reflect the new pack details
         """
         packs_json_path = path.join(self.outputs_path, f'{self.product}_packs.json')
         packs_json = {}
 
+        logger.info(f"Generating packs.json for {self.product}")
         for pack_id, pack in CONTENT_PACKS.items():
             packs_json[pack_id] = {
                 "url": pack['url'],
@@ -241,6 +257,8 @@ class WarcProcessor:
         with open(packs_json_path, 'w') as manifest:
             json.dump(packs_json, manifest, indent=4)
 
+            logger.info(f"\t{self.product}_packs.json generated successfully")
+
     def upload_to_s3(self):
         """ Upload generated content pack to S3
         """
@@ -248,23 +266,29 @@ class WarcProcessor:
         # TODO: delete folder contents and keep fodler
         self.s3_bucket.objects.filter(Prefix=f'{self.product}/').delete()
 
-        # upload content packs
+        logger.info(f"Uploading files to S3 ...")
         for pack_id, pack in CONTENT_PACKS.items():
             content_pack_path = path.join(self.outputs_path, f"{pack['filename']}")
 
-            log.info(f"Uploading {pack_id} to s3...")
+            logger.info(f"\tuploading {pack['filename']} to s3 ...")
             with open(content_pack_path, 'rb') as data:
                 self.s3_bucket.put_object(Key=f"{self.product}/content-packs/{pack['filename']}", Body=data)
 
-            log.info(f"{pack_id} content pack uploaded to: {self.s3_base_url}/content-packs/{pack['filename']}")
+                logger.info(f"\t\t{pack['filename']} content pack uploaded to: {self.s3_base_url}/content-packs/{pack['filename']}")
 
         # upload packs_json
         packs_json_path = path.join(self.outputs_path, f'{self.product}_packs.json')
+
+        logger.info(f"\tuploading {self.product}_packs.json to s3 ...")
         with open(packs_json_path, 'rb') as data:
             self.s3_bucket.put_object(Key=f'{self.product}/{self.product}_packs.json', Body=data)
 
-        log.info(f"{self.product}_packs.json uploaded to: {self.s3_base_url}/{self.product}_packs.json")
+            logger.info(f"\t\t{self.product}_packs.json uploaded to: {self.s3_base_url}/{self.product}_packs.json")
 
 
 if __name__ == '__main__':
-    WarcProcessor(args.archive).process_archive()
+    try:
+        WarcProcessor(args.archive).process_archive()
+    except Exception as e:
+        logger.error(f"Error processing {args.archive}: {str(e)}", exc_info=e)
+        raise
