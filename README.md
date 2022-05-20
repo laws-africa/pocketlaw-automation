@@ -48,13 +48,19 @@ All generated files are stored in the files folder as follows:
 ### Docker
 
 Generating and uploading content packs in Docker:
+
+1. Build the image:
 ```
-$ docker build \ 
-    --build-arg PRODUCT_DOMAIN="zimlii.org" \
-    --build-arg PRODUCT="zimlii" \
-    --build-arg AWS_REGION="eu-west-1" \
-    --build-arg AWS_KEY="<YOUR_AWS_CLI_KEY>" \
-    --build-arg AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
-    -t pl-extraction . \
-    && docker run -d pl-extraction
+$ docker build -t pl-content-extraction .
+```
+
+2. Run the container:
+```
+$ docker run \
+    -e PRODUCT="zimlii" \
+    -e PRODUCT_DOMAIN="zimlii.org" \
+    -e AWS_REGION="eu-west-1" \
+    -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
+    -e AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
+    pl-content-extraction
 ```
