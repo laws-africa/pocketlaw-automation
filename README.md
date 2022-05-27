@@ -57,8 +57,7 @@ $ docker build -t pl-content-extraction .
 2. Run the container with the required environment variables for the current product:
 ```
 $ docker run \
-    -e PRODUCT="zimlii" \
-    -e PRODUCT_DOMAIN="zimlii.org" \
+    -e PRODUCT_HOSTNAME="zimlii.org" \
     -e AWS_REGION="eu-west-1" \
     -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
     -e AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \

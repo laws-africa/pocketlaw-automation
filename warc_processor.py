@@ -21,12 +21,13 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description="Process a warc archive file into content packs.")
-parser.add_argument("--product", required=True, help="the LII website e.g. zimlii, namiblii")
+parser.add_argument("--hostname", required=True, help="the LII website hostname e.g. zimlii.org, lawlibrary.org.za")
 parser.add_argument("--archive", required=True, help="location of the warc archive file")
 
 args = parser.parse_args()
 
-PRODUCT = args.product.lower()
+PRODUCT_HOSTNAME = args.hostname.lower()
+PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
 CONTENT_PACKS = {
     "base": {
         "id": "base",
@@ -51,7 +52,7 @@ CONTENT_PACKS = {
         "dateString": None,
         "filename": None,
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for caselaw content.",
-        "baseUrl": f"https://media.{PRODUCT}.org/files/judgments/"
+        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/judgments/"
     },
     "gazettes": {
         "id": "gazettes",
@@ -64,7 +65,7 @@ CONTENT_PACKS = {
         "dateString": None,
         "filename": None,
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for gazettes content.",
-        "baseUrl": f"https://media.{PRODUCT}.org/files/government_gazette/"
+        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/government_gazette/"
     },
     "legislation": {
         "id": "legislation",
@@ -77,7 +78,7 @@ CONTENT_PACKS = {
         "dateString": None,
         "filename": None,
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for legislation content.",
-        "baseUrl": f"https://media.{PRODUCT}.org/files/legislation/"
+        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/legislation/"
     },
 }
 
@@ -110,22 +111,19 @@ class CustomIndexer(Indexer):
         return value
 
 
-# TODO: add logs for each step
-# TODO: add exceptions
 class WarcProcessor:
     def __init__(self, full_warc):
         self.full_warc = full_warc
-        self.product = PRODUCT
 
-        self.files_path = path.join(here, f'files/{self.product}')
+        self.files_path = path.join(here, f'files/{PRODUCT}')
         self.outputs_path = path.join(self.files_path, 'outputs')
 
         self.s3_resource = boto3.resource('s3')
         self.s3_client = boto3.client('s3')
-        self.s3_bucket = self.s3_resource.Bucket('pocketlaw-test')
+        self.s3_bucket = self.s3_resource.Bucket('pocketlaw')
         # TODO: get region from bucket object via boto3
-        self.s3_region = 'us-east-1'
-        self.s3_base_url = f"https://{self.s3_bucket.name}.s3.{self.s3_region}.amazonaws.com/{self.product}"
+        self.s3_region = 'eu-west-1'
+        self.s3_base_url = f"https://{self.s3_bucket.name}.s3.{self.s3_region}.amazonaws.com/{PRODUCT}"
 
     def process_archive(self):
         self.setup()
@@ -175,11 +173,11 @@ class WarcProcessor:
             for record in ArchiveIterator(full_archive, no_record_parse=False):
                 record_uri = record.rec_headers.get_header("WARC-Target-URI")
 
-                if record_uri and record_uri.startswith(f"https://media.{self.product}.org/files/government_gazette/"):
+                if record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/government_gazette/"):
                     gazettes_writer.write_record(record)
-                elif record_uri and record_uri.startswith(f"https://media.{self.product}.org/files/judgments/"):
+                elif record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/judgments/"):
                     caselaw_writer.write_record(record)
-                elif record_uri and record_uri.startswith(f"https://media.{self.product}.org/files/legislation/"):
+                elif record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/legislation/"):
                     legislation_writer.write_record(record)
                 else:
                     base_writer.write_record(record)
@@ -215,7 +213,7 @@ class WarcProcessor:
             pack['size'] = path.getsize(data_path)
             pack['sizeString'] = humanize.naturalsize(pack['size'])
             pack['version'] = now.strftime("%Y-%m-%d")
-            pack['filename'] = f'{self.product}_{pack_id}_{now.strftime("%Y_%m_%d")}.tgz'
+            pack['filename'] = f'{PRODUCT}_{pack_id}_{now.strftime("%Y_%m_%d")}.tgz'
             pack['url'] = f"{self.s3_base_url}/content-packs/{pack['filename']}"
 
             with open(manifest_path, 'w') as manifest:
@@ -237,12 +235,12 @@ class WarcProcessor:
                 logger.info(f"\t{pack_id} pack packed successfully")
 
     def generate_packs_json(self):
-        """ Update pocketlaw-releases/self.product/packs.json to reflect the new pack details
+        """ Update pocketlaw-releases/PRODUCT/packs.json to reflect the new pack details
         """
-        packs_json_path = path.join(self.outputs_path, f'{self.product}_packs.json')
+        packs_json_path = path.join(self.outputs_path, f'{PRODUCT}_packs.json')
         packs_json = {}
 
-        logger.info(f"Generating packs.json for {self.product}")
+        logger.info(f"Generating packs.json for {PRODUCT}")
         for pack_id, pack in CONTENT_PACKS.items():
             packs_json[pack_id] = {
                 "url": pack['url'],
@@ -257,14 +255,14 @@ class WarcProcessor:
         with open(packs_json_path, 'w') as manifest:
             json.dump(packs_json, manifest, indent=4)
 
-            logger.info(f"\t{self.product}_packs.json generated successfully")
+            logger.info(f"\t{PRODUCT}_packs.json generated successfully")
 
     def upload_to_s3(self):
         """ Upload generated content pack to S3
         """
         # empty bucket
         # TODO: delete folder contents and keep fodler
-        self.s3_bucket.objects.filter(Prefix=f'{self.product}/').delete()
+        self.s3_bucket.objects.filter(Prefix=f'{PRODUCT}/').delete()
 
         logger.info(f"Uploading files to S3 ...")
         for pack_id, pack in CONTENT_PACKS.items():
@@ -272,18 +270,18 @@ class WarcProcessor:
 
             logger.info(f"\tuploading {pack['filename']} to s3 ...")
             with open(content_pack_path, 'rb') as data:
-                self.s3_bucket.put_object(Key=f"{self.product}/content-packs/{pack['filename']}", Body=data)
+                self.s3_bucket.put_object(Key=f"{PRODUCT}/content-packs/{pack['filename']}", Body=data)
 
                 logger.info(f"\t\t{pack['filename']} content pack uploaded to: {self.s3_base_url}/content-packs/{pack['filename']}")
 
         # upload packs_json
-        packs_json_path = path.join(self.outputs_path, f'{self.product}_packs.json')
+        packs_json_path = path.join(self.outputs_path, f'{PRODUCT}_packs.json')
 
-        logger.info(f"\tuploading {self.product}_packs.json to s3 ...")
+        logger.info(f"\tuploading {PRODUCT}_packs.json to s3 ...")
         with open(packs_json_path, 'rb') as data:
-            self.s3_bucket.put_object(Key=f'{self.product}/{self.product}_packs.json', Body=data)
+            self.s3_bucket.put_object(Key=f'{PRODUCT}/{PRODUCT}_packs.json', Body=data)
 
-            logger.info(f"\t\t{self.product}_packs.json uploaded to: {self.s3_base_url}/{self.product}_packs.json")
+            logger.info(f"\t\t{PRODUCT}_packs.json uploaded to: {self.s3_base_url}/{PRODUCT}_packs.json")
 
 
 if __name__ == '__main__':

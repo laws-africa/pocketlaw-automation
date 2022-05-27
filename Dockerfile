@@ -3,8 +3,7 @@ FROM python:3.8-slim-buster
 ENV AWS_KEY=
 ENV AWS_SECRET=
 ENV AWS_REGION=
-ENV PRODUCT=
-ENV PRODUCT_DOMAIN=
+ENV PRODUCT_HOSTNAME=
 
 # install wget
 RUN apt-get update && apt-get install -y wget tree
