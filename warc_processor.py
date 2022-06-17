@@ -260,10 +260,6 @@ class WarcProcessor:
     def upload_to_s3(self):
         """ Upload generated content pack to S3
         """
-        # empty bucket
-        # TODO: delete folder contents and keep fodler
-        self.s3_bucket.objects.filter(Prefix=f'{PRODUCT}/').delete()
-
         logger.info(f"Uploading files to S3 ...")
         for pack_id, pack in CONTENT_PACKS.items():
             content_pack_path = path.join(self.outputs_path, f"{pack['filename']}")
