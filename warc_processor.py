@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import logging
 from os import path, makedirs
+import re
 import shutil
 import tarfile
 
@@ -28,6 +29,8 @@ args = parser.parse_args()
 
 PRODUCT_HOSTNAME = args.hostname.lower()
 PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
+LEGISLATION_DOC_TYPES = ['act', 'legal_instrument']
+GENERIC_DOC_TYPES = ['doc', 'statement', 'generic_document']
 CONTENT_PACKS = {
     "base": {
         "id": "base",
@@ -41,35 +44,9 @@ CONTENT_PACKS = {
         "filename": None,
         "description": "This is the base content pack that contains all the content except for document files (PDF, DOCX, RTF e.t.c) - these files are included in the other content packs."
     },
-    "caselaw": {
-        "id": "caselaw",
-        "name": "Caselaw",
-        "url": None,
-        "size": None,
-        "sizeString": None,
-        "version": None,
-        "date": None,
-        "dateString": None,
-        "filename": None,
-        "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for caselaw content.",
-        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/judgments/"
-    },
-    "gazettes": {
-        "id": "gazettes",
-        "name": "Gazettes",
-        "url": None,
-        "size": None,
-        "sizeString": None,
-        "version": None,
-        "date": None,
-        "dateString": None,
-        "filename": None,
-        "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for gazettes content.",
-        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/government_gazette/"
-    },
     "legislation": {
         "id": "legislation",
-        "name": "Legislation",
+        "name": "Legislation Pack",
         "url": None,
         "size": None,
         "sizeString": None,
@@ -78,9 +55,54 @@ CONTENT_PACKS = {
         "dateString": None,
         "filename": None,
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for legislation content.",
-        "baseUrl": f"https://media.{PRODUCT_HOSTNAME}/files/legislation/"
+        "frbrUriDocTypes": LEGISLATION_DOC_TYPES
+    },
+    "generic_document": {
+        "id": "generic_document",
+        "name": "Generic Documents Pack",
+        "url": None,
+        "size": None,
+        "sizeString": None,
+        "version": None,
+        "date": None,
+        "dateString": None,
+        "filename": None,
+        "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for gazettes content.",
+        "frbrUriDocTypes": GENERIC_DOC_TYPES
+    },
+    "caselaw": {
+        "id": "caselaw",
+        "name": "Caselaw Pack",
+        "url": None,
+        "size": None,
+        "sizeString": None,
+        "version": None,
+        "date": None,
+        "dateString": None,
+        "filename": None,
+        "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for caselaw content.",
+        "frbrUriDocTypes": ["judgment"]
     },
 }
+
+""" Given a Peachjam url, this regex will help us:
+- identify source documents links
+- identify what sort of document the link belongs to e.g. judgment or legislation
+"""
+SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))?                          # optional 'akn' prefix
+                                /(?P<country>[a-z]{2})                       # country
+                                (-(?P<locality>[^/]+))?                      # locality code
+                                /(?P<doctype>[^/]+)                          # document type
+                                (/(?P<subtype>[^0-9][^/]*))?                 # subtype (optional, cannot start with anumber)
+                                (/(?P<actor>[^0-9][^/]*))?                   # actor (optional, cannot start with a number)
+                                /(?P<date>[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?)  # date
+                                /(?P<number>[^/]+)                           # number
+                                (/                                           # optional expression language and date
+                                    (?P<language>[a-z]{3})                       # language (eg. eng)
+                                    (?P<expression_date>[@:][^/]*)?              # expression date (eg. @ or @2012-12-22 or :2012-12-22)
+                                )?
+                                (\/source(?P<format>[\.a-z0-9]+)?)           # source document, pdf links have an extension (.pdf)
+                                $""", flags=re.M | re.I)
 
 
 class CustomIndexer(Indexer):
@@ -164,23 +186,27 @@ class WarcProcessor:
         """
         # TODO: Make these writers dynamic
         base_writer = WARCWriter(filebuf=open(path.join(self.files_path, "base/data.warc.gz"), "wb"), gzip=True)
-        caselaw_writer = WARCWriter(filebuf=open(path.join(self.files_path, "caselaw/data.warc.gz"), "wb"), gzip=True)
-        gazettes_writer = WARCWriter(filebuf=open(path.join(self.files_path, "gazettes/data.warc.gz"), "wb"), gzip=True)
         legislation_writer = WARCWriter(filebuf=open(path.join(self.files_path, "legislation/data.warc.gz"), "wb"), gzip=True)
+        generic_document_writer = WARCWriter(filebuf=open(path.join(self.files_path, "generic_document/data.warc.gz"), "wb"), gzip=True)
+        caselaw_writer = WARCWriter(filebuf=open(path.join(self.files_path, "caselaw/data.warc.gz"), "wb"), gzip=True)
+
 
         logger.info("Generating data.warc.gz files for the content packs ...")
         with open(path.join(here, self.full_warc), "rb") as full_archive:
             for record in ArchiveIterator(full_archive, no_record_parse=False):
                 record_uri = record.rec_headers.get_header("WARC-Target-URI")
 
-                if record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/government_gazette/"):
-                    gazettes_writer.write_record(record)
-                elif record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/judgments/"):
-                    caselaw_writer.write_record(record)
-                elif record_uri and record_uri.startswith(f"https://media.{PRODUCT_HOSTNAME}/files/legislation/"):
-                    legislation_writer.write_record(record)
-                else:
-                    base_writer.write_record(record)
+                if record_uri:
+                    match = SOURCE_FILE_RE.search(record_uri)
+                    if match and match.group('doctype'):
+                        if match.group('doctype') in LEGISLATION_DOC_TYPES:
+                            legislation_writer.write_record(record)
+                        elif match.group('doctype') in GENERIC_DOC_TYPES:
+                            generic_document_writer.write_record(record)
+                        elif match.group('doctype') == 'judgment':
+                            caselaw_writer.write_record(record)
+                    else:
+                        base_writer.write_record(record)
 
             logger.info("\tdata.warc.gz files generated successfully")
 
