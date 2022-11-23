@@ -41,8 +41,6 @@ wget --recursive --page-requisites --span-hosts --https-only --delete-after --no
     --warc-file=$PRODUCT \
     ${PRODUCT_URL}
 
-wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories --domains lawlibrary.org.za,fonts.googleapis.com,fonts.gstatic.com,cdn.jsdelivr.net --warc-file=lawlibrary_test --level=2 https://lawlibrary.org.za/legislation/
-
 # Run warc_processor.py with location to warc file
 python /extraction/warc_processor.py --hostname $PRODUCT_HOSTNAME --archive ${ARCHIVE_FILE}
 
