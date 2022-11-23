@@ -29,8 +29,13 @@ args = parser.parse_args()
 
 PRODUCT_HOSTNAME = args.hostname.lower()
 PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
+
+# FRBR URI Doc types
 LEGISLATION_DOC_TYPES = ['act']
 GENERIC_DOC_TYPES = ['doc', 'statement']
+CASELAW_DOC_TYPES = ['judgment']
+
+# Content pack manifests
 CONTENT_PACKS = {
     "base": {
         "id": "base",
@@ -81,7 +86,7 @@ CONTENT_PACKS = {
         "dateString": None,
         "filename": None,
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for caselaw content.",
-        "frbrUriDocTypes": ["judgment"]
+        "frbrUriDocTypes": CASELAW_DOC_TYPES
     },
 }
 
@@ -89,7 +94,7 @@ CONTENT_PACKS = {
 - identify source documents links
 - identify what sort of document the link belongs to e.g. judgment or legislation
 """
-SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))                           # optional 'akn' prefix
+SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))                           # 'akn' prefix
                                 /(?P<country>[a-z]{2})                       # country
                                 (-(?P<locality>[^/]+))?                      # locality code
                                 /(?P<doctype>[^/]+)                          # document type
@@ -102,7 +107,7 @@ SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))                           # o
                                     (?P<expression_date>[@:][^/]*)?              # expression date (eg. @ or @2012-12-22 or :2012-12-22)
                                 )?
                                 (\/source(?P<format>[\.a-z0-9]+)?)           # source document, pdf links have an extension (.pdf)
-                                $""", flags=re.M | re.I)
+                                $""", flags=re.X | re.M | re.I)
 
 
 class CustomIndexer(Indexer):
@@ -203,7 +208,7 @@ class WarcProcessor:
                             legislation_writer.write_record(record)
                         elif match.group('doctype') in GENERIC_DOC_TYPES:
                             generic_document_writer.write_record(record)
-                        elif match.group('doctype') == 'judgment':
+                        elif match.group('doctype') in CASELAW_DOC_TYPES:
                             caselaw_writer.write_record(record)
                     else:
                         base_writer.write_record(record)
