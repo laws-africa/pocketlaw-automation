@@ -29,8 +29,8 @@ args = parser.parse_args()
 
 PRODUCT_HOSTNAME = args.hostname.lower()
 PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
-LEGISLATION_DOC_TYPES = ['act', 'legal_instrument']
-GENERIC_DOC_TYPES = ['doc', 'statement', 'generic_document']
+LEGISLATION_DOC_TYPES = ['act']
+GENERIC_DOC_TYPES = ['doc', 'statement']
 CONTENT_PACKS = {
     "base": {
         "id": "base",
@@ -89,7 +89,7 @@ CONTENT_PACKS = {
 - identify source documents links
 - identify what sort of document the link belongs to e.g. judgment or legislation
 """
-SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))?                          # optional 'akn' prefix
+SOURCE_FILE_RE = re.compile(r"""(/(?P<prefix>akn))                           # optional 'akn' prefix
                                 /(?P<country>[a-z]{2})                       # country
                                 (-(?P<locality>[^/]+))?                      # locality code
                                 /(?P<doctype>[^/]+)                          # document type
