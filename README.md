@@ -77,9 +77,13 @@ To extract the search index from Elasticsearch:
     $ logstash-plugin install logstash-input-elasticsearch
     $ logstash-plugin install logstash-output-csv 
     ```
-3. Run the script:
+3. Run the script with the required environment variables:
     ```
     $ cd search_index
-    $ ./runner.sh
+    $ ES_HOST=localhost:9200 \
+        ES_INDEX=peachjam \
+        CSV_OUTPUT_DEST=./csv_index_output.csv \
+        JSON_OUTPUT_DEST=./offline_search_index.json \
+        ./runner.sh
     ```
 4. The resulting `offline_search_index.json` is ready for integration on Pocketlaw
