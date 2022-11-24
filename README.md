@@ -9,43 +9,43 @@ Handy scripts to support PocketLaw. This repo includes:
 To generate content packs from a `zimlii.warc` archive:
 
 ```bash
-$ cd content_packs
-$ python warc_processor.py --product zimlii --archive ./zimlii.warc
+cd content_packs
+python warc_processor.py --product zimlii --archive ./zimlii.warc
 ```
 
 All generated files are stored in the files folder as follows:
 
 ```
-.
-├── Dockerfile
-├── README.md
-├── files
-│   └── zimlii
-│       ├── base
-│       │   ├── data.warc.gz
-│       │   ├── index.jsonlines
-│       │   └── manifest.json
-│       ├── caselaw
-│       │   ├── data.warc.gz
-│       │   ├── index.jsonlines
-│       │   └── manifest.json
-│       ├── gazettes
-│       │   ├── data.warc.gz
-│       │   ├── index.jsonlines
-│       │   └── manifest.json
-│       ├── legislation
-│       │   ├── data.warc.gz
-│       │   ├── index.jsonlines
-│       │   └── manifest.json
-│       └── outputs
-│           ├── zimlii_base_2022_04_29.tgz
-│           ├── zimlii_caselaw_2022_04_29.tgz
-│           ├── zimlii_gazettes_2022_04_29.tgz
-│           ├── zimlii_legislation_2022_04_29.tgz
-│           └── zimlii_packs.json
-├── requirements.txt
-├── warc_processor.py
-└── zimlii.warc
+    .
+    ├── Dockerfile
+    ├── README.md
+    ├── files
+    │   └── zimlii
+    │       ├── base
+    │       │   ├── data.warc.gz
+    │       │   ├── index.jsonlines
+    │       │   └── manifest.json
+    │       ├── caselaw
+    │       │   ├── data.warc.gz
+    │       │   ├── index.jsonlines
+    │       │   └── manifest.json
+    │       ├── gazettes
+    │       │   ├── data.warc.gz
+    │       │   ├── index.jsonlines
+    │       │   └── manifest.json
+    │       ├── legislation
+    │       │   ├── data.warc.gz
+    │       │   ├── index.jsonlines
+    │       │   └── manifest.json
+    │       └── outputs
+    │           ├── zimlii_base_2022_04_29.tgz
+    │           ├── zimlii_caselaw_2022_04_29.tgz
+    │           ├── zimlii_gazettes_2022_04_29.tgz
+    │           ├── zimlii_legislation_2022_04_29.tgz
+    │           └── zimlii_packs.json
+    ├── requirements.txt
+    ├── warc_processor.py
+    └── zimlii.warc
 ```
 
 ### Docker
@@ -53,20 +53,26 @@ All generated files are stored in the files folder as follows:
 Generating and uploading content packs in Docker:
 
 1. Build the image:
-```
-$ cd content_packs
-$ docker build -t pl-content-extraction .
-```
+    ```
+    cd content_packs
+    docker build -t pl-content-extraction .
+    ```
 
-2. Run the container in detached mode with the required environment variables for the current product:
-```
-$ docker run -d \
-    -e PRODUCT_HOSTNAME="zimlii.org" \
-    -e AWS_REGION="eu-west-1" \
-    -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
-    -e AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
-    pl-content-extraction
-```
+2. Build a volume to be attached to the crawl image:
+    ```
+    docker volume create extraction_volume
+    ```
+
+3. With the volume mounted at `/extraction`, run the container in detached mode with the required environment variables for the current product:
+    ```
+    docker run -d \
+        -v extraction_volume:/extraction:rw \
+        -e PRODUCT_HOSTNAME="zimlii.org" \
+        -e AWS_REGION="eu-west-1" \
+        -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
+        -e AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
+        pl-content-extraction
+    ```
 
 ## Offline Search Index
 
