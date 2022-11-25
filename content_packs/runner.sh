@@ -28,7 +28,6 @@ PRODUCT=$(echo $PRODUCT_HOSTNAME | cut -d. -f1)
 
 ARCHIVE_FILE="./${PRODUCT}.warc.gz"
 PRODUCT_URL="https://${PRODUCT_HOSTNAME}"
-MEDIA_BASE_URL="media.${PRODUCT_HOSTNAME}"
 
 # configure aws cli
 aws configure set aws_access_key_id ${AWS_KEY}
@@ -37,7 +36,7 @@ aws configure set region ${AWS_REGION}
 
 # Run wget
 wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories \
-    --domains ${PRODUCT_HOSTNAME},${MEDIA_BASE_URL},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
+    --domains ${PRODUCT_HOSTNAME},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
     --warc-file=$PRODUCT \
     ${PRODUCT_URL}
 
