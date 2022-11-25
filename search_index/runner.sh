@@ -23,6 +23,7 @@ if [ -z "$JSON_OUTPUT_DEST" ]; then
 fi
 
 # details from ES index into CSV
+# TODO: command may be different based on OS
 logstash -f es_search_index_export.conf
 
 # convert CSV into JSON
