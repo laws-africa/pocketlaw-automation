@@ -12,19 +12,13 @@ if [ -z "$ES_INDEX" ]; then
     exit 2;
 fi
 
-if [ -z "$CSV_OUTPUT_DEST" ]; then
-    echo "Error: CSV_OUTPUT_DEST not set"
-    exit 2;
-fi
-
 if [ -z "$JSON_OUTPUT_DEST" ]; then
     echo "Error: JSON_OUTPUT_DEST not set"
     exit 2;
 fi
 
-# details from ES index into CSV
-# TODO: command may be different based on OS
+# export from ES into ./es-export.jsonlines
 /usr/share/logstash/bin/logstash -f es_search_index_export.conf
 
-# convert CSV into JSON
-python3 search_processor.py --csv-input $CSV_OUTPUT_DEST --json-output $JSON_OUTPUT_DEST
+# convert jsonlines into json
+cat ./es-export.json | jq -sc > $JSON_OUTPUT_DEST
