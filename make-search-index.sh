@@ -18,7 +18,8 @@ if [ -z "$JSON_OUTPUT_DEST" ]; then
 fi
 
 # export from ES into ./es-export.jsonlines
+rm -rf ./es-export.jsonlines
 /usr/share/logstash/bin/logstash -f es_search_index_export.conf
 
 # convert jsonlines into json
-cat ./es-export.json | jq -sc > $JSON_OUTPUT_DEST
+cat ./es-export.jsonlines | jq -sc > $JSON_OUTPUT_DEST
