@@ -15,13 +15,13 @@ This repo builds a single Docker image for both content extraction and building 
 
 2. Build a volume to be attached to the crawl image:
     ```
-    docker volume create extraction_volume
+    mkdir data
     ```
 
-3. With the volume mounted at `/extraction`, run the container in detached mode with the required environment variables for the current product:
+3. Run the container in detached mode with the required environment variables for the current product:
     ```
     docker run -d \
-        -v extraction_volume:/extraction:rw \
+        -v $(pwd)/data:/extraction/data \
         -e PRODUCT_HOSTNAME="zimlii.org" \
         -e AWS_REGION="eu-west-1" \
         -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
