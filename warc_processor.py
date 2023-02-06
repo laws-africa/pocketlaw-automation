@@ -14,7 +14,7 @@ from warcio.warcwriter import WARCWriter
 from warcio.archiveiterator import ArchiveIterator
 
 
-here = path.abspath(path.dirname(__file__))
+DATA_DIR = path.abspath(os.path.join(path.dirname(__file__), "data"))
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)-8s %(message)s",
@@ -142,7 +142,7 @@ class WarcProcessor:
     def __init__(self, full_warc):
         self.full_warc = full_warc
 
-        self.files_path = path.join(here, f'files/{PRODUCT}')
+        self.files_path = path.join(DATA_DIR, f'files/{PRODUCT}')
         self.outputs_path = path.join(self.files_path, 'outputs')
 
         self.s3_resource = boto3.resource('s3')
@@ -197,7 +197,7 @@ class WarcProcessor:
 
 
         logger.info("Generating data.warc.gz files for the content packs ...")
-        with open(path.join(here, self.full_warc), "rb") as full_archive:
+        with open(self.full_warc, "rb") as full_archive:
             for record in ArchiveIterator(full_archive, no_record_parse=False):
                 record_uri = record.rec_headers.get_header("WARC-Target-URI")
 

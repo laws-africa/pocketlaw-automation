@@ -26,7 +26,7 @@ fi
 # extract product from hostname
 PRODUCT=$(echo $PRODUCT_HOSTNAME | cut -d. -f1)
 
-ARCHIVE_FILE="./${PRODUCT}.warc.gz"
+ARCHIVE_FILE="./data/${PRODUCT}.warc.gz"
 PRODUCT_URL="https://${PRODUCT_HOSTNAME}"
 
 # configure aws cli
@@ -37,10 +37,10 @@ aws configure set region ${AWS_REGION}
 # Run wget
 wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories \
     --domains ${PRODUCT_HOSTNAME},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
-    --retries 3 --warc-file=$PRODUCT \
+    --tries 3 --warc-file=data/$PRODUCT \
     ${PRODUCT_URL}
 
 # Run warc_processor.py with location to warc file
-python3 /extraction/warc_processor.py --hostname $PRODUCT_HOSTNAME --archive ${ARCHIVE_FILE}
+python3 /extraction/warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${ARCHIVE_FILE}
 
-tree .
+tree data
