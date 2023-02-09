@@ -14,7 +14,7 @@ from warcio.warcwriter import WARCWriter
 from warcio.archiveiterator import ArchiveIterator
 
 
-DATA_DIR = path.abspath(os.path.join(path.dirname(__file__), "data"))
+DATA_DIR = path.abspath(path.join(path.dirname(__file__), "data"))
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)-8s %(message)s",
@@ -34,6 +34,7 @@ PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
 LEGISLATION_DOC_TYPES = ['act']
 GENERIC_DOC_TYPES = ['doc', 'statement']
 CASELAW_DOC_TYPES = ['judgment']
+GAZETTE_DOC_TYPES = ['officialGazette']
 
 # Content pack manifests
 CONTENT_PACKS = {
@@ -88,6 +89,19 @@ CONTENT_PACKS = {
         "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for caselaw content.",
         "frbrUriDocTypes": CASELAW_DOC_TYPES
     },
+    #"gazette": {
+    #    "id": "gazette",
+    #    "name": "Gazettes Pack",
+    #    "url": None,
+    #    "size": None,
+    #    "sizeString": None,
+    #    "version": None,
+    #    "date": None,
+    #    "dateString": None,
+    #    "filename": None,
+    #    "description": "This is the content pack that contains the document files (PDF, DOCX, RTF e.t.c) for gazettes.",
+    #    "frbrUriDocTypes": GAZETTE_DOC_TYPES,
+    #},
 }
 
 """ Given a Peachjam url, this regex will help us:
@@ -189,29 +203,36 @@ class WarcProcessor:
     def generate_data(self):
         """ Split the full warc archive into content pack data.warc.gz
         """
-        # TODO: Make these writers dynamic
-        base_writer = WARCWriter(filebuf=open(path.join(self.files_path, "base/data.warc.gz"), "wb"), gzip=True)
-        legislation_writer = WARCWriter(filebuf=open(path.join(self.files_path, "legislation/data.warc.gz"), "wb"), gzip=True)
-        generic_document_writer = WARCWriter(filebuf=open(path.join(self.files_path, "generic_document/data.warc.gz"), "wb"), gzip=True)
-        caselaw_writer = WARCWriter(filebuf=open(path.join(self.files_path, "caselaw/data.warc.gz"), "wb"), gzip=True)
-
+        writers = {}
+        for pack in CONTENT_PACKS.values():
+            pack_id = pack["id"]
+            writers[pack_id] = WARCWriter(filebuf=open(path.join(self.files_path, f"{pack_id}/data.warc.gz"), "wb"),
+                                          gzip=True)
 
         logger.info("Generating data.warc.gz files for the content packs ...")
+        count = 0
         with open(self.full_warc, "rb") as full_archive:
             for record in ArchiveIterator(full_archive, no_record_parse=False):
                 record_uri = record.rec_headers.get_header("WARC-Target-URI")
+                count += 1
+                if count % 100 == 0:
+                    logger.info(count)
 
                 if record_uri:
                     match = SOURCE_FILE_RE.search(record_uri)
                     if match and match.group('doctype'):
-                        if match.group('doctype') in LEGISLATION_DOC_TYPES:
-                            legislation_writer.write_record(record)
-                        elif match.group('doctype') in GENERIC_DOC_TYPES:
-                            generic_document_writer.write_record(record)
-                        elif match.group('doctype') in CASELAW_DOC_TYPES:
-                            caselaw_writer.write_record(record)
+                        doctype = match.group('doctype')
+                        pack = None
+                        # write to the appropriate pack
+                        for pack_info in CONTENT_PACKS.values():
+                            if doctype in pack_info.get("frbrUriDocTypes", []):
+                                writer = writers[pack_info["id"]]
+                                writer.write_record(record)
+                                break
+                        else:
+                            logger.warning(f"No pack to write to for {doctype}: {record_uri}")
                     else:
-                        base_writer.write_record(record)
+                        writers["base"].write_record(record)
 
             logger.info("\tdata.warc.gz files generated successfully")
 
