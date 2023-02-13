@@ -37,8 +37,8 @@ aws configure set region ${AWS_REGION}
 # Run wget
 wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories \
     --domains ${PRODUCT_HOSTNAME},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
-    --tries 3 --warc-file=data/$PRODUCT \
-    ${PRODUCT_URL}
+    --tries 3 -X '/akn/*/officialGazette/*' --exclude-domains archive.gazettes.africa \
+    --warc-file=data/$PRODUCT ${PRODUCT_URL}
 
 # Run warc_processor.py with location to warc file
 python3 /extraction/warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${ARCHIVE_FILE}

@@ -219,10 +219,13 @@ class WarcProcessor:
                     logger.info(count)
 
                 if record_uri:
+                    if record_uri.startswith("https://archive.gazettes.africa"):
+                        logger.info(f"Ignoring {record_uri}")
+                        continue
+
                     match = SOURCE_FILE_RE.search(record_uri)
                     if match and match.group('doctype'):
                         doctype = match.group('doctype')
-                        pack = None
                         # write to the appropriate pack
                         for pack_info in CONTENT_PACKS.values():
                             if doctype in pack_info.get("frbrUriDocTypes", []):
