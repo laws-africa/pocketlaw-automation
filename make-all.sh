@@ -1,5 +1,6 @@
 #!/bin/sh
 set -ex
 
-./make-warc.sh
 ./make-search-index-index.sh
+./make-warc.sh
+./make-dist.sh

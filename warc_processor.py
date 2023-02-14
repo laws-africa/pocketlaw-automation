@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description="Process a warc archive file into content packs.")
 parser.add_argument("--hostname", required=True, help="the LII website hostname e.g. zimlii.org, lawlibrary.org.za")
 parser.add_argument("--archive", required=True, help="location of the warc archive file")
-
-args = parser.parse_args()
+parser.add_argument("--dist", action="store_true", help="prepare for distribution")
 
 PRODUCT_HOSTNAME = args.hostname.lower()
 PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
@@ -157,7 +156,7 @@ class WarcProcessor:
         self.full_warc = full_warc
 
         self.files_path = path.join(DATA_DIR, f'files/{PRODUCT}')
-        self.outputs_path = path.join(self.files_path, 'outputs')
+        self.outputs_path = path.join(DATA_DIR, 'dist')
 
         self.s3_resource = boto3.resource('s3')
         self.s3_client = boto3.client('s3')
@@ -170,6 +169,8 @@ class WarcProcessor:
         self.setup()
         self.generate_data()
         self.generate_indexes()
+
+    def dist(self):
         self.generate_manifest()
         self.generate_packs()
         self.generate_packs_json()
@@ -177,28 +178,18 @@ class WarcProcessor:
 
     def setup(self):
         """ Create files folder and content packs & outputs folders within it.
-
-        If any of these folders exists, delete them and recreate them.
         """
-        logger.info("Creating product files folder ...")
-        if path.exists(self.files_path):
-            shutil.rmtree(self.files_path)
+        logger.info(f"Creating product files folder {self.files_path}")
+        makedirs(self.files_path, exist_ok=True)
 
-        makedirs(self.files_path)
-
-        logger.info("Creating pack folders ...")
+        logger.info("Cleaning pack folders ...")
         for pack_id in CONTENT_PACKS.keys():
             pack_folder = path.join(self.files_path, f'{pack_id}')
-            if path.exists(pack_folder):
-                shutil.rmtree(pack_folder)
+            logger.info(f"Creating pack folder {pack_folder}")
+            makedirs(pack_folder, exist_ok=True)
 
-            makedirs(pack_folder)
-
-        logger.info("Creating outputs folder ...")
-        if path.exists(self.outputs_path):
-            shutil.rmtree(self.outputs_path)
-
-        makedirs(self.outputs_path)
+        logger.info(f"Creating outputs folder {self.outputs_path}")
+        makedirs(self.outputs_path, exist_ok=True)
 
     def generate_data(self):
         """ Split the full warc archive into content pack data.warc.gz
@@ -274,7 +265,7 @@ class WarcProcessor:
             with open(manifest_path, 'w') as manifest:
                 json.dump(pack, manifest, indent=4)
 
-                logger.info(f"\t{pack_id} pack manifest generated successfully")
+                logger.info(f"\t{manifest_path} generated successfully")
 
     def generate_packs(self):
         """ Generate content_pack.tgz that contains data.warc.gz + index.jsonlines + manifest.json
@@ -336,8 +327,14 @@ class WarcProcessor:
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
+
     try:
-        WarcProcessor(args.archive).process_archive()
+        processor = WarcProcessor(args.archive)
+        if args["dist"]:
+            processor.dist()
+        else:
+            processor.process_archive()
     except Exception as e:
         logger.error(f"Error processing {args.archive}: {str(e)}", exc_info=e)
         raise
