@@ -36,9 +36,9 @@ python3 ./warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${ARCHIV
 tree data
 
 # copy in the content pack files
-for f in data/dist/$PRODUCT_*.tgz; do
-  aws s3 cp $f s3://pocketlaw/$PRODUCT/content_packs/
+for f in data/dist/${PRODUCT}_*.tgz; do
+  aws s3 cp --acl public-read $f s3://pocketlaw/$PRODUCT/content-packs/
 done
 
 # copy in the pack list last, this is what pocketlaw checks for updates
-aws s3 cp data/dist/$PRODUCT_packs.json s3://pocketlaw/$PRODUCT/
+aws s3 cp --acl public-read data/dist/${PRODUCT}_packs.json s3://pocketlaw/$PRODUCT/
