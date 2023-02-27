@@ -14,10 +14,11 @@ fi
 
 # extract product from hostname
 PRODUCT=$(echo $PRODUCT_HOSTNAME | cut -d. -f1)
+ES_HOST="${ES_HOST:=elk.int.laws.africa:9200}"
 
 # export from ES into ./es-export.jsonlines
 rm -rf ./es-export.jsonlines
 /usr/share/logstash/bin/logstash -f es_search_index_export.conf
 
 # convert jsonlines into json
-cat ./es-export.jsonlines | jq -sc > ${JSON_OUTPUT_DEST:-./data/$PRODUCT_search_index.json}
+cat ./es-export.jsonlines | jq -sc > ./data/${PRODUCT}_search_index.json

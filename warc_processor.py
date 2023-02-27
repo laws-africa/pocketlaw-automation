@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser(description="Process a warc archive file into c
 parser.add_argument("--hostname", required=True, help="the LII website hostname e.g. zimlii.org, lawlibrary.org.za")
 parser.add_argument("--archive", required=True, help="location of the warc archive file")
 parser.add_argument("--dist", action="store_true", help="prepare for distribution")
+args = parser.parse_args()
 
 PRODUCT_HOSTNAME = args.hostname.lower()
 PRODUCT = PRODUCT_HOSTNAME.split('.')[0]
@@ -327,11 +328,9 @@ class WarcProcessor:
 
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-
     try:
         processor = WarcProcessor(args.archive)
-        if args["dist"]:
+        if args.dist:
             processor.dist()
         else:
             processor.process_archive()
