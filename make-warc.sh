@@ -20,7 +20,7 @@ PRODUCT_URL="https://${PRODUCT_HOSTNAME}"
 
 wget --recursive --page-requisites --span-hosts --https-only --delete-after --no-directories \
     --domains ${PRODUCT_HOSTNAME},use.fontawesome.com,fonts.googleapis.com,code.highcharts.com,cdn.jsdelivr.net \
-    --tries 3\
+    --tries 3 --read-timeout 600 \
     -X '/akn/*/officialGazette/*' \
     -X '/akn/*/officialGazette/*/*' \
     -X '/akn/*/officialGazette/*/*/*' \
