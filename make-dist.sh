@@ -20,7 +20,6 @@ fi
 
 # extract product from hostname
 PRODUCT=$(echo $PRODUCT_HOSTNAME | cut -d. -f1)
-ARCHIVE_FILE="./data/${PRODUCT}.warc.gz"
 
 # configure aws cli
 aws configure set aws_access_key_id ${AWS_KEY}
@@ -28,10 +27,12 @@ aws configure set aws_secret_access_key ${AWS_SECRET}
 aws configure set region ${AWS_REGION:-eu-west-1}
 
 # copy search index into place
+mkdir -p data/files/$PRODUCT/base/
 cp data/${PRODUCT}_search_index.json data/files/$PRODUCT/base/search_index.json
 
 # Run warc_processor.py with location to warc file
-python3 ./warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${ARCHIVE_FILE} --dist
+python3 ./warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${PRODUCT}.warc.gz
+python3 ./warc_processor.py --hostname $PRODUCT_HOSTNAME --archive data/${PRODUCT}.warc.gz --dist
 
 tree data
 
