@@ -7,7 +7,6 @@ import re
 import shutil
 import tarfile
 
-import boto3
 import humanize
 from warcio.indexer import Indexer
 from warcio.warcwriter import WARCWriter
@@ -155,16 +154,9 @@ class CustomIndexer(Indexer):
 class WarcProcessor:
     def __init__(self, full_warc):
         self.full_warc = full_warc
-
         self.files_path = path.join(DATA_DIR, f'files/{PRODUCT}')
         self.outputs_path = path.join(DATA_DIR, 'dist')
-
-        self.s3_resource = boto3.resource('s3')
-        self.s3_client = boto3.client('s3')
-        self.s3_bucket = self.s3_resource.Bucket('pocketlaw')
-        # TODO: get region from bucket object via boto3
-        self.s3_region = 'eu-west-1'
-        self.s3_base_url = f"https://{self.s3_bucket.name}.s3.{self.s3_region}.amazonaws.com/{PRODUCT}"
+        self.s3_base_url = f"https://pocketlaw.s3.eu-west-1.amazonaws.com/{PRODUCT}"
 
     def process_archive(self):
         self.setup()
@@ -175,7 +167,6 @@ class WarcProcessor:
         self.generate_manifest()
         self.generate_packs()
         self.generate_packs_json()
-        self.upload_to_s3()
 
     def setup(self):
         """ Create files folder and content packs & outputs folders within it.
@@ -303,29 +294,6 @@ class WarcProcessor:
             json.dump(packs_json, manifest, indent=4)
 
             logger.info(f"\t{PRODUCT}_packs.json generated successfully")
-
-    def upload_to_s3(self):
-        """ Upload generated content pack to S3
-        """
-        logger.info(f"Uploading files to S3 ...")
-        for pack_id, pack in CONTENT_PACKS.items():
-            content_pack_path = path.join(self.outputs_path, f"{pack['filename']}")
-
-            logger.info(f"\tuploading {pack['filename']} to s3 ...")
-            with open(content_pack_path, 'rb') as data:
-                self.s3_bucket.put_object(Key=f"{PRODUCT}/content-packs/{pack['filename']}", Body=data)
-
-                logger.info(f"\t\t{pack['filename']} content pack uploaded to: {self.s3_base_url}/content-packs/{pack['filename']}")
-
-        # upload packs_json
-        packs_json_path = path.join(self.outputs_path, f'{PRODUCT}_packs.json')
-
-        logger.info(f"\tuploading {PRODUCT}_packs.json to s3 ...")
-        with open(packs_json_path, 'rb') as data:
-            self.s3_bucket.put_object(Key=f'{PRODUCT}/{PRODUCT}_packs.json', Body=data)
-
-            logger.info(f"\t\t{PRODUCT}_packs.json uploaded to: {self.s3_base_url}/{PRODUCT}_packs.json")
-
 
 if __name__ == '__main__':
     try:
