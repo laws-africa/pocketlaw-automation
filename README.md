@@ -23,6 +23,7 @@ This repo builds a single Docker image for both content extraction and building 
     docker run -d \
         -v $(pwd)/data:/extraction/data \
         -e PRODUCT_HOSTNAME="zimlii.org" \
+        -e ES_INDEX="zimlii,zimlii_*" \
         -e AWS_REGION="eu-west-1" \
         -e AWS_KEY="<YOUR_AWS_CLI_KEY>" \
         -e AWS_SECRET="<YOUR_AWS_CLI_SECRET>" \
